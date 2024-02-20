@@ -333,6 +333,12 @@ int ppp_get_link_uptime()
  * PPP Data Link Layer "protocol" table.
  * One entry per supported protocol.
  * The last entry must be NULL.
+ *
+ * 数组里从上到下依次是 
+ *     lcp 链路层协商
+ *     pap.chap 授权处理
+ *     ipcp.ipv6cp 网络层协商
+ * 和实际发生的顺序一致
  */
 struct protent *protocols[] = {
     &lcp_protent,
