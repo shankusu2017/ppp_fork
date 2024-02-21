@@ -1185,6 +1185,8 @@ get_input(void)
 
     /*
      * Upcall the proper protocol input routine.
+     *
+     * PPP_IP, PPP_IPV6 在内核层被内核处理了，故这里无需处理
      */
     for (i = 0; (protp = protocols[i]) != NULL; ++i) {
 	if (protp->protocol == protocol && protp->enabled_flag) {
