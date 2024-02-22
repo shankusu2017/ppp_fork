@@ -307,7 +307,7 @@ u_int32_t ipaddr;
 {
     static char b[64];
 
-    slprintf(b, sizeof(b), "%I", ipaddr);
+    slprintf(b, sizeof(b), "%I", ipaddr);	/* %I 是 %d 的老式写法 */
     return b;
 }
 
@@ -322,6 +322,7 @@ static int
 setvjslots(argv)
     char **argv;
 {
+	dlog("...");
     int value;
 
     if (!int_option(*argv, &value))
@@ -343,6 +344,7 @@ static int
 setdnsaddr(argv)
     char **argv;
 {
+	dlog("...");
     u_int32_t dns;
     struct hostent *hp;
 
@@ -379,6 +381,7 @@ static int
 setwinsaddr(argv)
     char **argv;
 {
+	dlog("...");
     u_int32_t wins;
     struct hostent *hp;
 
@@ -418,6 +421,7 @@ setipaddr(arg, argv, doit)
     char **argv;
     int doit;
 {
+	dlog("arg: %s...", arg);
     struct hostent *hp;
     char *colon;
     u_int32_t local, remote;
@@ -485,6 +489,7 @@ printipaddr(opt, printer, arg)
     void (*printer) __P((void *, char *, ...));
     void *arg;
 {
+	dlog("...");
 	ipcp_options *wo = &ipcp_wantoptions[0];
 
 	if (wo->ouraddr != 0)
@@ -501,6 +506,7 @@ static int
 setnetmask(argv)
     char **argv;
 {
+	dlog("...");
     u_int32_t mask;
     int n;
     char *p;
@@ -530,6 +536,7 @@ parse_dotted_ip(p, vp)
     char *p;
     u_int32_t *vp;
 {
+	dlog("...");
     int n;
     u_int32_t v, b;
     char *endp, *p0 = p;
@@ -566,6 +573,7 @@ static void
 ipcp_init(unit)
     int unit;
 {
+	dlog("...");
     fsm *f = &ipcp_fsm[unit];
     ipcp_options *wo = &ipcp_wantoptions[unit];
     ipcp_options *ao = &ipcp_allowoptions[unit];
@@ -573,10 +581,10 @@ ipcp_init(unit)
     f->unit = unit;
     f->protocol = PPP_IPCP;
     f->callbacks = &ipcp_callbacks;
-    fsm_init(&ipcp_fsm[unit]);
+    fsm_init(&ipcp_fsm[unit], PPP_IPCP_NAME);
 
     /*
-     * Some 3G modems use repeated IPCP NAKs as a way of stalling
+     * Some 3G modems use repeated IPCP NAKs as a way of stalling(停滞)
      * until they can contact a server on the network, so we increase
      * the default number of NAKs we accept before we start treating
      * them as rejects.
@@ -618,8 +626,10 @@ static void
 ipcp_open(unit)
     int unit;
 {
+	dlog("...");
     fsm_open(&ipcp_fsm[unit]);
     ipcp_is_open = 1;
+	dlog("%s", fsm_pout(&ipcp_fsm[unit], 0));
 }
 
 
@@ -631,6 +641,7 @@ ipcp_close(unit, reason)
     int unit;
     char *reason;
 {
+	dlog("...");
     fsm_close(&ipcp_fsm[unit], reason);
 }
 
@@ -642,6 +653,7 @@ static void
 ipcp_lowerup(unit)
     int unit;
 {
+	dlog("...");
     fsm_lowerup(&ipcp_fsm[unit]);
 }
 
@@ -653,6 +665,7 @@ static void
 ipcp_lowerdown(unit)
     int unit;
 {
+	dlog("...");
     fsm_lowerdown(&ipcp_fsm[unit]);
 }
 
@@ -666,6 +679,7 @@ ipcp_input(unit, p, len)
     u_char *p;
     int len;
 {
+	dlog("...");
     fsm_input(&ipcp_fsm[unit], p, len);
 }
 
@@ -679,6 +693,7 @@ static void
 ipcp_protrej(unit)
     int unit;
 {
+	dlog("...");
     fsm_lowerdown(&ipcp_fsm[unit]);
 }
 
@@ -691,6 +706,7 @@ static void
 ipcp_resetci(f)
     fsm *f;
 {
+	dlog("...");
     ipcp_options *wo = &ipcp_wantoptions[f->unit];
     ipcp_options *go = &ipcp_gotoptions[f->unit];
     ipcp_options *ao = &ipcp_allowoptions[f->unit];
@@ -724,6 +740,7 @@ static int
 ipcp_cilen(f)
     fsm *f;
 {
+	dlog("...");
     ipcp_options *go = &ipcp_gotoptions[f->unit];
     ipcp_options *wo = &ipcp_wantoptions[f->unit];
     ipcp_options *ho = &ipcp_hisoptions[f->unit];
@@ -770,6 +787,7 @@ ipcp_addci(f, ucp, lenp)
     u_char *ucp;
     int *lenp;
 {
+	dlog("...");
     ipcp_options *go = &ipcp_gotoptions[f->unit];
     int len = *lenp;
 
@@ -877,6 +895,7 @@ ipcp_ackci(f, p, len)
     u_char *p;
     int len;
 {
+	dlog("...");
     ipcp_options *go = &ipcp_gotoptions[f->unit];
     u_short cilen, citype, cishort;
     u_int32_t cilong;
@@ -1022,6 +1041,7 @@ ipcp_nakci(f, p, len, treat_as_reject)
     int len;
     int treat_as_reject;
 {
+	dlog("...");
     ipcp_options *go = &ipcp_gotoptions[f->unit];
     u_char cimaxslotindex, cicflag;
     u_char citype, cilen, *next;
@@ -1270,6 +1290,7 @@ ipcp_rejci(f, p, len)
     u_char *p;
     int len;
 {
+	dlog("...");
     ipcp_options *go = &ipcp_gotoptions[f->unit];
     u_char cimaxslotindex, ciflag, cilen;
     u_short cishort;
@@ -1422,9 +1443,10 @@ ipcp_reqci(f, inp, len, reject_if_disagree)
     int *len;			/* Length of requested CIs */
     int reject_if_disagree;
 {
-    ipcp_options *wo = &ipcp_wantoptions[f->unit];
-    ipcp_options *ho = &ipcp_hisoptions[f->unit];
-    ipcp_options *ao = &ipcp_allowoptions[f->unit];
+	dlog("...");
+    ipcp_options *wo = &ipcp_wantoptions[f->unit];	/* 希望对方能同意me的参数 */
+    ipcp_options *ho = &ipcp_hisoptions[f->unit];	/* me已经同意了对方的参数 */
+    ipcp_options *ao = &ipcp_allowoptions[f->unit];	/* me能接受对方的参数 */
     u_char *cip, *next;		/* Pointer to current and next CIs */
     u_short cilen, citype;	/* Parsed len, type */
     u_short cishort;		/* Parsed short value */
@@ -1707,6 +1729,7 @@ endswitch:
 static void
 ip_check_options()
 {
+	dlog("...");
     struct hostent *hp;
     u_int32_t local;
     ipcp_options *wo = &ipcp_wantoptions[0];
@@ -1740,6 +1763,7 @@ static int
 ip_demand_conf(u)
     int u;
 {
+	dlog("...");
     ipcp_options *wo = &ipcp_wantoptions[u];
 
     if (wo->hisaddr == 0 && !noremoteip) {
@@ -1784,12 +1808,14 @@ static void
 ipcp_up(f)
     fsm *f;
 {
+	dlog("...");
     u_int32_t mask;
     ipcp_options *ho = &ipcp_hisoptions[f->unit];
     ipcp_options *go = &ipcp_gotoptions[f->unit];
     ipcp_options *wo = &ipcp_wantoptions[f->unit];
 
     IPCPDEBUG(("ipcp: up"));
+	dlog("ipcp_up...");
 
     /*
      * We must have a non-zero IP address for both ends of the link.
@@ -1973,6 +1999,7 @@ static void
 ipcp_down(f)
     fsm *f;
 {
+	dlog("...");
     IPCPDEBUG(("ipcp: down"));
     /* XXX a bit IPv4-centric here, we only need to get the stats
      * before the interface is marked down. */
@@ -2023,6 +2050,7 @@ ipcp_clear_addrs(unit, ouraddr, hisaddr)
     u_int32_t ouraddr;  /* local address */
     u_int32_t hisaddr;  /* remote address */
 {
+	dlog("...");
     if (proxy_arp_set[unit]) {
 	cifproxyarp(unit, hisaddr);
 	proxy_arp_set[unit] = 0;
@@ -2042,6 +2070,7 @@ static void
 ipcp_finished(f)
     fsm *f;
 {
+	dlog("...");
 	if (ipcp_is_open) {
 		ipcp_is_open = 0;
 		np_finished(f->unit, PPP_IP);
@@ -2057,6 +2086,7 @@ static void
 ipcp_script_done(arg)
     void *arg;
 {
+	dlog("...");
     ipcp_script_pid = 0;
     switch (ipcp_script_state) {
     case s_up:
@@ -2084,6 +2114,7 @@ ipcp_script(script, wait)
     char *script;
     int wait;
 {
+	dlog("...");
     char strspeed[32], strlocal[32], strremote[32];
     char *argv[8];
 
@@ -2113,6 +2144,7 @@ static void
 create_resolv(peerdns1, peerdns2)
     u_int32_t peerdns1, peerdns2;
 {
+	dlog("...");
     FILE *f;
 
     f = fopen(_PATH_RESOLV, "w");
@@ -2148,6 +2180,7 @@ ipcp_printpkt(p, plen, printer, arg)
     void (*printer) __P((void *, char *, ...));
     void *arg;
 {
+	dlog("...");
     int code, id, len, olen;
     u_char *pstart, *optend;
     u_short cishort;
@@ -2290,6 +2323,7 @@ ip_active_pkt(pkt, len)
     u_char *pkt;
     int len;
 {
+	dlog("...");
     u_char *tcp;
     int hlen;
 

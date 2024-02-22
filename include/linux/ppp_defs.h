@@ -90,11 +90,20 @@
 #define PPP_CCP		0x80fd	/* Compression Control Protocol */
 #define PPP_ECPFRAG	0x8055	/* ECP at link level (below MP bundle) */
 #define PPP_ECP		0x8053	/* Encryption Control Protocol */
+
 #define PPP_LCP		0xc021	/* Link Control Protocol */
 #define PPP_PAP		0xc023	/* Password Authentication Protocol */
 #define PPP_LQR		0xc025	/* Link Quality Report protocol */
 #define PPP_CHAP	0xc223	/* Cryptographic Handshake Auth. Protocol */
 #define PPP_CBCP	0xc029	/* Callback Control Protocol */
+
+#define PPP_ECP_NAME "Encryption Control Protocol"
+#define PPP_LCP_NAME "Link Control Protocol"
+#define PPP_CCP_NAME "Compression Control Protocol"
+#define PPP_IPCP_NAME "Internet Protocol Control Protocol"
+#define PPP_IP_NAME "Internet Protocol"
+#define PPP_IPV6CP_NAME "IPv6 Control Protocol"
+#define PPP_IPXCP_NAME "IPX Control Protocol"
 
 /*
  * Values for FCS calculations.

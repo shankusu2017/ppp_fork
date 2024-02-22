@@ -385,7 +385,7 @@ ipxcp_init(unit)
     f->unit	 = unit;
     f->protocol	 = PPP_IPXCP;
     f->callbacks = &ipxcp_callbacks;
-    fsm_init(&ipxcp_fsm[unit]);
+    fsm_init(&ipxcp_fsm[unit], PPP_IPXCP_NAME);
 
     memset (wo->name,	  0, sizeof (wo->name));
     memset (wo->our_node, 0, sizeof (wo->our_node));
@@ -471,6 +471,7 @@ static void
 ipxcp_open(unit)
     int unit;
 {
+	dlog("%s", fsm_pout(&ipxcp_fsm[unit], 0));
     fsm_open(&ipxcp_fsm[unit]);
 }
 

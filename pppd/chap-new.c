@@ -93,7 +93,7 @@ static struct chap_server_state {
 	int flags;
 	int id;
 	char *name;
-	struct chap_digest_type *digest;
+	struct chap_digest_type *digest;	/* 授权方式 */
 	int challenge_xmits;
 	int challenge_pktlen;
 	unsigned char challenge[CHAL_MAX_PKTLEN];
@@ -140,12 +140,14 @@ static struct chap_digest_type *chap_digests;
 static void
 chap_init(int unit)
 {
+	dlog("...");
 	memset(&client, 0, sizeof(client));
 	memset(&server, 0, sizeof(server));
 
 	chap_md5_init();
 #ifdef CHAPMS
 	chapms_init();
+	dlog("CHAPMS MACRO ing...");	/* 此宏已启用 */
 #endif
 }
 
@@ -155,16 +157,18 @@ chap_init(int unit)
 void
 chap_register_digest(struct chap_digest_type *dp)
 {
+	dlog("...");
 	dp->next = chap_digests;
 	chap_digests = dp;
 }
 
 /*
- * chap_lowerup - we can start doing stuff now.
+ * chap_lowerup - we can start doing stuff(的东西) now.
  */
 static void
 chap_lowerup(int unit)
 {
+	dlog("...");
 	struct chap_client_state *cs = &client;
 	struct chap_server_state *ss = &server;
 
@@ -177,6 +181,7 @@ chap_lowerup(int unit)
 static void
 chap_lowerdown(int unit)
 {
+	dlog("...");
 	struct chap_client_state *cs = &client;
 	struct chap_server_state *ss = &server;
 
@@ -194,6 +199,7 @@ chap_lowerdown(int unit)
 void
 chap_auth_peer(int unit, char *our_name, int digest_code)
 {
+	dlog("our_name: %s, digest_code: %d", our_name, digest_code);
 	struct chap_server_state *ss = &server;
 	struct chap_digest_type *dp;
 
@@ -213,8 +219,10 @@ chap_auth_peer(int unit, char *our_name, int digest_code)
 	/* Start with a random ID value */
 	ss->id = (unsigned char)(drand48() * 256);
 	ss->flags |= AUTH_STARTED;
-	if (ss->flags & LOWERUP)
+	if (ss->flags & LOWERUP) {
+		dlog("call chap_timeout...");
 		chap_timeout(ss);
+	}
 }
 
 /*
@@ -224,6 +232,7 @@ chap_auth_peer(int unit, char *our_name, int digest_code)
 void
 chap_auth_with_peer(int unit, char *our_name, int digest_code)
 {
+	dlog("...");
 	struct chap_client_state *cs = &client;
 	struct chap_digest_type *dp;
 
@@ -251,7 +260,9 @@ chap_auth_with_peer(int unit, char *our_name, int digest_code)
 static void
 chap_timeout(void *arg)
 {
+	dlog("...");
 	struct chap_server_state *ss = arg;
+	dlog("...");
 
 	ss->flags &= ~TIMEOUT_PENDING;
 	if ((ss->flags & CHALLENGE_VALID) == 0) {
@@ -278,6 +289,7 @@ chap_timeout(void *arg)
 static void
 chap_generate_challenge(struct chap_server_state *ss)
 {
+	dlog("...");
 	int clen = 1, nlen, len;
 	unsigned char *p;
 
@@ -306,6 +318,7 @@ static void
 chap_handle_response(struct chap_server_state *ss, int id,
 		     unsigned char *pkt, int len)
 {
+	dlog("...");
 	int response_len, ok, mlen;
 	unsigned char *response, *p;
 	char *name = NULL;	/* initialized to shut gcc up */
@@ -411,6 +424,7 @@ chap_verify_response(char *name, char *ourname, int id,
 		     unsigned char *challenge, unsigned char *response,
 		     char *message, int message_space)
 {
+	dlog("...");
 	int ok;
 	unsigned char secret[MAXSECRETLEN];
 	int secret_len;
@@ -435,6 +449,7 @@ static void
 chap_respond(struct chap_client_state *cs, int id,
 	     unsigned char *pkt, int len)
 {
+	dlog("...");
 	int clen, nlen;
 	int secret_len;
 	unsigned char *p;
@@ -488,6 +503,7 @@ static void
 chap_handle_status(struct chap_client_state *cs, int code, int id,
 		   unsigned char *pkt, int len)
 {
+	dlog("...");
 	const char *msg = NULL;
 
 	if ((cs->flags & (AUTH_DONE|AUTH_STARTED|LOWERUP))
@@ -526,6 +542,7 @@ chap_handle_status(struct chap_client_state *cs, int code, int id,
 static void
 chap_input(int unit, unsigned char *pkt, int pktlen)
 {
+	dlog("...");
 	struct chap_client_state *cs = &client;
 	struct chap_server_state *ss = &server;
 	unsigned char code, id;
@@ -557,6 +574,7 @@ chap_input(int unit, unsigned char *pkt, int pktlen)
 static void
 chap_protrej(int unit)
 {
+	dlog("...");
 	struct chap_client_state *cs = &client;
 	struct chap_server_state *ss = &server;
 
@@ -586,6 +604,7 @@ static int
 chap_print_pkt(unsigned char *p, int plen,
 	       void (*printer) __P((void *, char *, ...)), void *arg)
 {
+	dlog("...");
 	int code, id, len;
 	int clen, nlen;
 	unsigned char x;

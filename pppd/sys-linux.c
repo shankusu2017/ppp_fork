@@ -1161,6 +1161,7 @@ get_loop_output(void)
     int n;
 
     if (new_style_driver) {
+		dlog("new_style_driver");
 	while ((n = read_packet(inpacket_buf)) > 0)
 	    if (loop_frame(inpacket_buf, n))
 		rv = 1;
@@ -2040,6 +2041,7 @@ int ppp_available(void)
 
     fd = open("/dev/ppp", O_RDWR);
     if (fd >= 0) {
+		dlog("new_style_driver = 1");
 	new_style_driver = 1;
 
 	/* XXX should get from driver */

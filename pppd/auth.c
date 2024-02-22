@@ -428,6 +428,7 @@ setupapfile(argv)
 	option_error("unable to reset uid before opening %s: %m", fname);
 	return 0;
     }
+	dlog("fname: %s...", fname);
     ufile = fopen(fname, "r");
     if (seteuid(euid) == -1)
 	fatal("unable to regain privileges: %m");
@@ -475,6 +476,7 @@ static int
 privgroup(argv)
     char **argv;
 {
+	dlog("...");
     struct group *g;
     int i;
 
@@ -501,6 +503,7 @@ static int
 set_noauth_addr(argv)
     char **argv;
 {
+	dlog("...");
     char *addr = *argv;
     int l = strlen(addr) + 1;
     struct wordlist *wp;
@@ -523,6 +526,7 @@ static int
 set_permitted_number(argv)
     char **argv;
 {
+	dlog("...");
     char *number = *argv;
     int l = strlen(number) + 1;
     struct wordlist *wp;
@@ -545,6 +549,7 @@ void
 link_required(unit)
     int unit;
 {
+	dlog("...");
 }
 
 /*
@@ -553,9 +558,10 @@ link_required(unit)
 void start_link(unit)
     int unit;
 {
+	dlog("...");
     status = EXIT_CONNECT_FAILED;
+	print_status();
     new_phase(PHASE_SERIALCONN);
-
     hungup = 0;
     devfd = the_channel->connect();
     if (devfd < 0)
@@ -590,8 +596,10 @@ void start_link(unit)
 
     status = EXIT_NEGOTIATION_FAILED;
     new_phase(PHASE_ESTABLISH);
-
+	print_status();
     lcp_lowerup(0);
+	dlog("call done");
+	print_status();
     return;
 
  disconnect:
@@ -613,6 +621,7 @@ void
 link_terminated(unit)
     int unit;
 {
+	dlog("...");
     if (phase == PHASE_DEAD || phase == PHASE_MASTER)
 	return;
     new_phase(PHASE_DISCONNECT);
@@ -683,7 +692,8 @@ void
 link_down(unit)
     int unit;
 {
-    if (auth_state != s_down) {
+	dlog("...");
+	if (auth_state != s_down) {
 	notify(link_down_notifier, 0);
 	auth_state = s_down;
 	if (auth_script_state == s_up && auth_script_pid == 0) {
@@ -705,7 +715,7 @@ void upper_layers_down(int unit)
 {
     int i;
     struct protent *protp;
-
+	dlog("...");
     for (i = 0; (protp = protocols[i]) != NULL; ++i) {
 	if (!protp->enabled_flag)
 	    continue;
@@ -726,6 +736,7 @@ void
 link_established(unit)
     int unit;
 {
+	dlog("...");
     int auth;
     lcp_options *wo = &lcp_wantoptions[unit];
     lcp_options *go = &lcp_gotoptions[unit];
@@ -739,8 +750,10 @@ link_established(unit)
     if (!doing_multilink) {
 	for (i = 0; (protp = protocols[i]) != NULL; ++i)
 	    if (protp->protocol != PPP_LCP && protp->enabled_flag
-		&& protp->lowerup != NULL)
+		&& protp->lowerup != NULL) {
 		(*protp->lowerup)(unit);
+		dlog("%s lowerup", protp->name);
+		}
     }
 
     if (!auth_required && noauth_addrs != NULL)
@@ -793,6 +806,7 @@ link_established(unit)
 	upap_authwithpeer(unit, user, passwd);
 	auth |= PAP_WITHPEER;
     }
+	dlog("auth: %x", auth);
     auth_pending[unit] = auth;
     auth_done[unit] = 0;
 
@@ -807,7 +821,8 @@ static void
 network_phase(unit)
     int unit;
 {
-    lcp_options *go = &lcp_gotoptions[unit];
+	dlog("...");
+	lcp_options *go = &lcp_gotoptions[unit];
 
     /* Log calling number. */
     if (*remote_number)
@@ -851,10 +866,12 @@ void
 start_networks(unit)
     int unit;
 {
-    int i;
+	dlog("...");
+	int i;
     struct protent *protp;
     int ecp_required, mppe_required;
 
+	dlog("");
     new_phase(PHASE_NETWORK);
 
 #ifdef HAVE_MULTILINK
@@ -894,17 +911,26 @@ continue_networks(unit)
 {
     int i;
     struct protent *protp;
+	dlog("...");
 
     /*
      * Start the "real" network protocols.
+     *
+     * 这里进入 ipcp 阶段
      */
-    for (i = 0; (protp = protocols[i]) != NULL; ++i)
+    for (i = 0; (protp = protocols[i]) != NULL; ++i) {
+		if (protp != NULL) {
+			dlog("protocol: %s:%x enabled_flag: %d, protp->open: %p", 
+			protp->name, protp->protocol, protp->enabled_flag, protp->open);
+		}
 	if (protp->protocol < 0xC000
 	    && protp->protocol != PPP_CCP && protp->protocol != PPP_ECP
 	    && protp->enabled_flag && protp->open != NULL) {
 	    (*protp->open)(0);
+		dlog("protocol: %s", protp->name);
 	    ++num_np_open;
 	}
+    }
 
     if (num_np_open == 0)
 	/* nothing to do */
@@ -918,7 +944,8 @@ void
 auth_peer_fail(unit, protocol)
     int unit, protocol;
 {
-    /*
+	dlog(" protocol: %d", protocol);
+	/*
      * Authentication failure: take the link down
      */
     status = EXIT_PEER_AUTH_FAILED;
@@ -927,6 +954,8 @@ auth_peer_fail(unit, protocol)
 
 /*
  * The peer has been successfully authenticated using `protocol'.
+ *
+ * 如果已完成全部 auth 流程，则进入 net_parse 阶段(LCP)
  */
 void
 auth_peer_success(unit, protocol, prot_flavor, name, namelen)
@@ -934,7 +963,8 @@ auth_peer_success(unit, protocol, prot_flavor, name, namelen)
     char *name;
     int namelen;
 {
-    int bit;
+	dlog("...protocol: %d, %s", protocol);
+	int bit;
 
     switch (protocol) {
     case PPP_CHAP:
@@ -980,8 +1010,10 @@ auth_peer_success(unit, protocol, prot_flavor, name, namelen)
      * If there is no more authentication still to be done,
      * proceed to the network (or callback) phase.
      */
-    if ((auth_pending[unit] &= ~bit) == 0)
+    if ((auth_pending[unit] &= ~bit) == 0) {
+		dlog("call network_phase");
         network_phase(unit);
+    }
 }
 
 /*
@@ -991,7 +1023,8 @@ void
 auth_withpeer_fail(unit, protocol)
     int unit, protocol;
 {
-    if (passwd_from_file)
+	dlog("...");
+	if (passwd_from_file)
 	BZERO(passwd, MAXSECRETLEN);
     /*
      * We've failed to authenticate ourselves to our peer.
@@ -1010,7 +1043,8 @@ void
 auth_withpeer_success(unit, protocol, prot_flavor)
     int unit, protocol, prot_flavor;
 {
-    int bit;
+	dlog("...");
+	int bit;
     const char *prot = "";
 
     switch (protocol) {
@@ -1068,6 +1102,7 @@ np_up(unit, proto)
     int unit, proto;
 {
     int tlim;
+	dlog("proto: %d", proto);
 
     if (num_np_up == 0) {
 	/*
@@ -1112,12 +1147,14 @@ void
 np_down(unit, proto)
     int unit, proto;
 {
+	dlog("...");
     if (--num_np_up == 0) {
 	UNTIMEOUT(check_idle, NULL);
 	UNTIMEOUT(connect_time_expired, NULL);
 #ifdef MAXOCTETS
 	UNTIMEOUT(check_maxoctets, NULL);
-#endif	
+#endif
+	dlog("switch to network");
 	new_phase(PHASE_NETWORK);
     }
 }
@@ -1129,6 +1166,7 @@ void
 np_finished(unit, proto)
     int unit, proto;
 {
+	dlog("...");
     if (--num_np_open <= 0) {
 	/* no further use for the link: shut up shop. */
 	lcp_close(0, "No network protocols running");
@@ -1140,6 +1178,7 @@ static void
 check_maxoctets(arg)
     void *arg;
 {
+	dlog("...");
     unsigned int used;
 
     update_link_stats(ifunit);
@@ -1179,6 +1218,7 @@ static void
 check_idle(arg)
     void *arg;
 {
+	dlog("...");
     struct ppp_idle idle;
     time_t itime;
     int tlim;
@@ -1209,6 +1249,7 @@ static void
 connect_time_expired(arg)
     void *arg;
 {
+	dlog("...");
     info("Connect time expired");
     status = EXIT_CONNECT_TIME;
     lcp_close(0, "Connect time expired");	/* Close connection */
@@ -1220,6 +1261,7 @@ connect_time_expired(arg)
 void
 auth_check_options()
 {
+	dlog("...");
     lcp_options *wo = &lcp_wantoptions[0];
     int can_auth;
     int lacks_ip;
@@ -1317,6 +1359,7 @@ void
 auth_reset(unit)
     int unit;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[unit];
     lcp_options *ao = &lcp_allowoptions[unit];
     int hadchap;
@@ -1370,6 +1413,7 @@ check_passwd(unit, auser, userlen, apasswd, passwdlen, msg)
     int passwdlen;
     char **msg;
 {
+	dlog("...");
     int ret;
     char *filename;
     FILE *f;
@@ -1493,7 +1537,8 @@ static int
 null_login(unit)
     int unit;
 {
-    char *filename;
+	dlog("...");
+	char *filename;
     FILE *f;
     int i, ret;
     struct wordlist *addrs, *opts;
@@ -1544,7 +1589,8 @@ static int
 get_pap_passwd(passwd)
     char *passwd;
 {
-    char *filename;
+	dlog("...");
+	char *filename;
     FILE *f;
     int ret;
     char secret[MAXWORDLEN];
@@ -1584,7 +1630,8 @@ static int
 have_pap_secret(lacks_ipp)
     int *lacks_ipp;
 {
-    FILE *f;
+	dlog("...");
+	FILE *f;
     int ret;
     char *filename;
     struct wordlist *addrs;
@@ -1629,7 +1676,8 @@ have_chap_secret(client, server, need_ip, lacks_ipp)
     int need_ip;
     int *lacks_ipp;
 {
-    FILE *f;
+	dlog("...");
+	FILE *f;
     int ret;
     char *filename;
     struct wordlist *addrs;
@@ -1678,7 +1726,8 @@ have_srp_secret(client, server, need_ip, lacks_ipp)
     int need_ip;
     int *lacks_ipp;
 {
-    FILE *f;
+	dlog("...");
+	FILE *f;
     int ret;
     char *filename;
     struct wordlist *addrs;
@@ -1721,7 +1770,8 @@ get_secret(unit, client, server, secret, secret_len, am_server)
     int *secret_len;
     int am_server;
 {
-    FILE *f;
+	dlog("...");
+	FILE *f;
     int ret, len;
     char *filename;
     struct wordlist *addrs, *opts;
@@ -1786,7 +1836,8 @@ get_srp_secret(unit, client, server, secret, am_server)
     char *secret;
     int am_server;
 {
-    FILE *fp;
+	dlog("...");
+	FILE *fp;
     int ret;
     char *filename;
     struct wordlist *addrs, *opts;
@@ -1833,7 +1884,8 @@ set_allowed_addrs(unit, addrs, opts)
     struct wordlist *addrs;
     struct wordlist *opts;
 {
-    int n;
+	dlog("...");
+	int n;
     struct wordlist *ap, **plink;
     struct permitted_ip *ip;
     char *ptr_word, *ptr_mask;
@@ -1988,7 +2040,8 @@ auth_ip_addr(unit, addr)
     int unit;
     u_int32_t addr;
 {
-    int ok;
+	dlog("...");
+	int ok;
 
     /* don't allow loopback or multicast address */
     if (bad_ip_adrs(addr))
@@ -2015,7 +2068,8 @@ ip_addr_check(addr, addrs)
     u_int32_t addr;
     struct permitted_ip *addrs;
 {
-    for (; ; ++addrs)
+	dlog("...");
+	for (; ; ++addrs)
 	if ((addr & addrs->mask) == addrs->base)
 	    return addrs->permit;
 }
@@ -2029,7 +2083,8 @@ int
 bad_ip_adrs(addr)
     u_int32_t addr;
 {
-    addr = ntohl(addr);
+	dlog("...");
+	addr = ntohl(addr);
     return (addr >> IN_CLASSA_NSHIFT) == IN_LOOPBACKNET
 	|| IN_MULTICAST(addr) || IN_BADCLASS(addr);
 }
@@ -2042,7 +2097,8 @@ static int
 some_ip_ok(addrs)
     struct wordlist *addrs;
 {
-    for (; addrs != 0; addrs = addrs->next) {
+	dlog("...");
+	for (; addrs != 0; addrs = addrs->next) {
 	if (addrs->word[0] == '-')
 	    break;
 	if (addrs->word[0] != '!')
@@ -2058,7 +2114,8 @@ some_ip_ok(addrs)
 int
 auth_number()
 {
-    struct wordlist *wp = permitted_numbers;
+	dlog("...");
+	struct wordlist *wp = permitted_numbers;
     int l;
 
     /* Allow all if no authorization list. */
@@ -2087,7 +2144,8 @@ check_access(f, filename)
     FILE *f;
     char *filename;
 {
-    struct stat sbuf;
+	dlog("...");
+	struct stat sbuf;
 
     if (fstat(fileno(f), &sbuf) < 0) {
 	warn("cannot stat secret file %s: %m", filename);
@@ -2123,7 +2181,8 @@ scan_authfile(f, client, server, secret, addrs, opts, filename, flags)
     char *filename;
     int flags;
 {
-    int newline, xxx;
+	dlog("...");
+	int newline, xxx;
     int got_flag, best_flag;
     FILE *sf;
     struct wordlist *ap, *addr_list, *alist, **app;
@@ -2279,6 +2338,7 @@ static int
 wordlist_count(wp)
     struct wordlist *wp;
 {
+	dlog("...");
     int n;
 
     for (n = 0; wp != NULL; wp = wp->next)
@@ -2293,7 +2353,8 @@ static void
 free_wordlist(wp)
     struct wordlist *wp;
 {
-    struct wordlist *next;
+	dlog("...");
+	struct wordlist *next;
 
     while (wp != NULL) {
 	next = wp->next;
@@ -2310,7 +2371,8 @@ static void
 auth_script_done(arg)
     void *arg;
 {
-    auth_script_pid = 0;
+	dlog("...");
+	auth_script_pid = 0;
     switch (auth_script_state) {
     case s_up:
 	if (auth_state == s_down) {
@@ -2335,7 +2397,8 @@ static void
 auth_script(script)
     char *script;
 {
-    char strspeed[32];
+	dlog("...");
+	char strspeed[32];
     struct passwd *pw;
     char struid[32];
     char *user_name;

@@ -88,9 +88,10 @@ enum eap_state_code {
 	eapSRP2,	/* Sent EAP SRP-SHA1 Subtype 2 */
 	eapSRP3,	/* Sent EAP SRP-SHA1 Subtype 3 */
 	eapMD5Chall,	/* Sent MD5-Challenge */
-	eapOpen,	/* Completed authentication */
+
+	eapOpen,	/* Completed authentication (验证成功) */
 	eapSRP4,	/* Sent EAP SRP-SHA1 Subtype 4 */
-	eapBadAuth	/* Failed authentication */
+	eapBadAuth	/* Failed authentication (验证失败) */
 };
 
 #define	EAP_STATES	\
@@ -112,7 +113,7 @@ struct eap_auth {
 	u_short ea_namelen;	/* Length of our name */
 	u_short ea_peerlen;	/* Length of peer's name */
 	enum eap_state_code ea_state;
-	u_char ea_id;		/* Current id */
+	u_char ea_id;		/* Current id (一些控制message用到) */
 	u_char ea_requests;	/* Number of Requests sent/received */
 	u_char ea_responses;	/* Number of Responses */
 	u_char ea_type;		/* One of EAPT_* */

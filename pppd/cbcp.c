@@ -75,14 +75,17 @@ struct protent cbcp_protent = {
     cbcp_init,
     cbcp_input,
     cbcp_protrej,
+    
     cbcp_lowerup,
     NULL,
     cbcp_open,
     NULL,
+    
     cbcp_printpkt,
     NULL,
     0,
     "CBCP",
+
     NULL,
     cbcp_option_list,
     NULL,
@@ -147,6 +150,7 @@ cbcp_open(unit)
     int unit;
 {
     dbglog("cbcp_open");
+	dlog("cbcp_open");
 }
 
 /* process an incomming packet */

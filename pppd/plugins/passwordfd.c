@@ -3,7 +3,7 @@
  *  Author: Arvin Schnell <arvin@suse.de>
  *
  *  This plugin let's you pass the password to the pppd via
- *  a file descriptor. That's easy and secure - no fiddling
+ *  a file descriptor. That's easy and secure - no fiddling(摆弄)
  *  with pap- and chap-secrets files.
  */
 

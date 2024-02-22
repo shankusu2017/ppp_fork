@@ -164,6 +164,7 @@ static option_t chapms_option_list[] = {
 static void
 chapms_generate_challenge(unsigned char *challenge)
 {
+	dlog("...");
 	*challenge++ = 8;
 #ifdef DEBUGMPPEKEY
 	if (mschap_challenge && strlen(mschap_challenge) == 8)
@@ -176,6 +177,7 @@ chapms_generate_challenge(unsigned char *challenge)
 static void
 chapms2_generate_challenge(unsigned char *challenge)
 {
+	dlog("...");
 	*challenge++ = 16;
 #ifdef DEBUGMPPEKEY
 	if (mschap_challenge && strlen(mschap_challenge) == 16)
@@ -191,6 +193,7 @@ chapms_verify_response(int id, char *name,
 		       unsigned char *challenge, unsigned char *response,
 		       char *message, int message_space)
 {
+	dlog("...");
 	unsigned char md[MS_CHAP_RESPONSE_LEN];
 	int diff;
 	int challenge_len, response_len;
@@ -239,6 +242,7 @@ chapms2_verify_response(int id, char *name,
 			unsigned char *challenge, unsigned char *response,
 			char *message, int message_space)
 {
+	dlog("...");
 	unsigned char md[MS_CHAP2_RESPONSE_LEN];
 	char saresponse[MS_AUTH_RESPONSE_LENGTH+1];
 	int challenge_len, response_len;
@@ -315,6 +319,7 @@ chapms_make_response(unsigned char *response, int id, char *our_name,
 		     unsigned char *challenge, char *secret, int secret_len,
 		     unsigned char *private)
 {
+	dlog("...");
 	challenge++;	/* skip length, should be 8 */
 	*response++ = MS_CHAP_RESPONSE_LEN;
 	ChapMS(challenge, secret, secret_len, response);
@@ -338,6 +343,7 @@ chapms2_add_to_response_cache(int id, unsigned char *challenge,
 			      unsigned char *response,
 			      unsigned char *auth_response)
 {
+	dlog("...");
 	int i = chapms2_response_cache_next_index;
 
 	chapms2_response_cache[i].id = id;
@@ -357,6 +363,7 @@ static struct chapms2_response_cache_entry*
 chapms2_find_in_response_cache(int id, unsigned char *challenge,
 		      unsigned char *auth_response)
 {
+	dlog("...");
 	int i;
 
 	for (i = 0; i < chapms2_response_cache_size; i++) {
@@ -381,6 +388,7 @@ chapms2_make_response(unsigned char *response, int id, char *our_name,
 		      unsigned char *challenge, char *secret, int secret_len,
 		      unsigned char *private)
 {
+	dlog("...");
 	const struct chapms2_response_cache_entry *cache_entry;
 	unsigned char auth_response[MS_AUTH_RESPONSE_LENGTH+1];
 
@@ -405,6 +413,7 @@ chapms2_make_response(unsigned char *response, int id, char *our_name,
 static int
 chapms2_check_success(int id, unsigned char *msg, int len)
 {
+	dlog("...");
 	if ((len < MS_AUTH_RESPONSE_LENGTH + 2) ||
 	    strncmp((char *)msg, "S=", 2) != 0) {
 		/* Packet does not start with "S=" */
@@ -435,6 +444,7 @@ chapms2_check_success(int id, unsigned char *msg, int len)
 static void
 chapms_handle_failure(unsigned char *inp, int len)
 {
+	dlog("...");
 	int err;
 	char *p, *msg;
 
@@ -508,7 +518,8 @@ ChallengeResponse(u_char *challenge,
 		  u_char PasswordHash[MD4_SIGNATURE_SIZE],
 		  u_char response[24])
 {
-    u_char    ZPasswordHash[21];
+	dlog("...");
+	u_char    ZPasswordHash[21];
 
     BZERO(ZPasswordHash, sizeof(ZPasswordHash));
     BCOPY(PasswordHash, ZPasswordHash, MD4_SIGNATURE_SIZE);
@@ -535,7 +546,8 @@ ChallengeHash(u_char PeerChallenge[16], u_char *rchallenge,
 	      char *username, u_char Challenge[8])
     
 {
-    SHA1_CTX	sha1Context;
+	dlog("...");
+	SHA1_CTX	sha1Context;
     u_char	sha1Hash[SHA1_SIGNATURE_SIZE];
     char	*user;
 
@@ -564,7 +576,8 @@ ChallengeHash(u_char PeerChallenge[16], u_char *rchallenge,
 static void
 ascii2unicode(char ascii[], int ascii_len, u_char unicode[])
 {
-    int i;
+	dlog("...");
+	int i;
 
     BZERO(unicode, ascii_len * 2);
     for (i = 0; i < ascii_len; i++)
@@ -574,6 +587,7 @@ ascii2unicode(char ascii[], int ascii_len, u_char unicode[])
 static void
 NTPasswordHash(u_char *secret, int secret_len, u_char hash[MD4_SIGNATURE_SIZE])
 {
+	dlog("...");
 #ifdef __NetBSD__
     /* NetBSD uses the libc md4 routines which take bytes instead of bits */
     int			mdlen = secret_len;
@@ -598,7 +612,8 @@ static void
 ChapMS_NT(u_char *rchallenge, char *secret, int secret_len,
 	  u_char NTResponse[24])
 {
-    u_char	unicodePassword[MAX_NT_PASSWORD * 2];
+	dlog("...");
+	u_char	unicodePassword[MAX_NT_PASSWORD * 2];
     u_char	PasswordHash[MD4_SIGNATURE_SIZE];
 
     /* Hash the Unicode version of the secret (== password). */
@@ -612,7 +627,8 @@ static void
 ChapMS2_NT(u_char *rchallenge, u_char PeerChallenge[16], char *username,
 	   char *secret, int secret_len, u_char NTResponse[24])
 {
-    u_char	unicodePassword[MAX_NT_PASSWORD * 2];
+	dlog("...");
+	u_char	unicodePassword[MAX_NT_PASSWORD * 2];
     u_char	PasswordHash[MD4_SIGNATURE_SIZE];
     u_char	Challenge[8];
 
@@ -632,7 +648,8 @@ static void
 ChapMS_LANMan(u_char *rchallenge, char *secret, int secret_len,
 	      unsigned char *response)
 {
-    int			i;
+	dlog("...");
+	int			i;
     u_char		UcasePassword[MAX_NT_PASSWORD]; /* max is actually 14 */
     u_char		PasswordHash[MD4_SIGNATURE_SIZE];
 
@@ -655,7 +672,8 @@ GenerateAuthenticatorResponse(u_char PasswordHashHash[MD4_SIGNATURE_SIZE],
 			      u_char *rchallenge, char *username,
 			      u_char authResponse[MS_AUTH_RESPONSE_LENGTH+1])
 {
-    /*
+	dlog("...");
+	/*
      * "Magic" constants used in response generation, from RFC 2759.
      */
     u_char Magic1[39] = /* "Magic server to client signing constant" */
@@ -702,7 +720,8 @@ GenerateAuthenticatorResponsePlain
 		 u_char *rchallenge, char *username,
 		 u_char authResponse[MS_AUTH_RESPONSE_LENGTH+1])
 {
-    u_char	unicodePassword[MAX_NT_PASSWORD * 2];
+	dlog("...");
+	u_char	unicodePassword[MAX_NT_PASSWORD * 2];
     u_char	PasswordHash[MD4_SIGNATURE_SIZE];
     u_char	PasswordHashHash[MD4_SIGNATURE_SIZE];
 
@@ -725,7 +744,8 @@ GenerateAuthenticatorResponsePlain
 void
 mppe_set_keys(u_char *rchallenge, u_char PasswordHashHash[MD4_SIGNATURE_SIZE])
 {
-    SHA1_CTX	sha1Context;
+	dlog("...");
+	SHA1_CTX	sha1Context;
     u_char	Digest[SHA1_SIGNATURE_SIZE];	/* >= MPPE_MAX_KEY_LEN */
 
     SHA1_Init(&sha1Context);
@@ -747,7 +767,8 @@ mppe_set_keys(u_char *rchallenge, u_char PasswordHashHash[MD4_SIGNATURE_SIZE])
 static void
 Set_Start_Key(u_char *rchallenge, char *secret, int secret_len)
 {
-    u_char	unicodePassword[MAX_NT_PASSWORD * 2];
+	dlog("...");
+	u_char	unicodePassword[MAX_NT_PASSWORD * 2];
     u_char	PasswordHash[MD4_SIGNATURE_SIZE];
     u_char	PasswordHashHash[MD4_SIGNATURE_SIZE];
 
@@ -769,7 +790,8 @@ void
 mppe_set_keys2(u_char PasswordHashHash[MD4_SIGNATURE_SIZE],
 	       u_char NTResponse[24], int IsServer)
 {
-    SHA1_CTX	sha1Context;
+	dlog("...");
+	SHA1_CTX	sha1Context;
     u_char	MasterKey[SHA1_SIGNATURE_SIZE];	/* >= MPPE_MAX_KEY_LEN */
     u_char	Digest[SHA1_SIGNATURE_SIZE];	/* >= MPPE_MAX_KEY_LEN */
 
@@ -862,7 +884,8 @@ mppe_set_keys2(u_char PasswordHashHash[MD4_SIGNATURE_SIZE],
 static void
 SetMasterKeys(char *secret, int secret_len, u_char NTResponse[24], int IsServer)
 {
-    u_char	unicodePassword[MAX_NT_PASSWORD * 2];
+	dlog("...");
+	u_char	unicodePassword[MAX_NT_PASSWORD * 2];
     u_char	PasswordHash[MD4_SIGNATURE_SIZE];
     u_char	PasswordHashHash[MD4_SIGNATURE_SIZE];
     /* Hash (x2) the Unicode version of the secret (== password). */
@@ -879,7 +902,8 @@ void
 ChapMS(u_char *rchallenge, char *secret, int secret_len,
        unsigned char *response)
 {
-    BZERO(response, MS_CHAP_RESPONSE_LEN);
+	dlog("...");
+	BZERO(response, MS_CHAP_RESPONSE_LEN);
 
     ChapMS_NT(rchallenge, secret, secret_len, &response[MS_CHAP_NTRESP]);
 
@@ -914,7 +938,8 @@ ChapMS2(u_char *rchallenge, u_char *PeerChallenge,
 	char *user, char *secret, int secret_len, unsigned char *response,
 	u_char authResponse[], int authenticator)
 {
-    /* ARGSUSED */
+	dlog("...");
+	/* ARGSUSED */
     u_char *p = &response[MS_CHAP2_PEER_CHALLENGE];
     int i;
 
@@ -951,7 +976,8 @@ ChapMS2(u_char *rchallenge, u_char *PeerChallenge,
 void
 set_mppe_enc_types(int policy, int types)
 {
-    /* Early exit for unknown policies. */
+	dlog("...");
+	/* Early exit for unknown policies. */
     if (policy != MPPE_ENC_POL_ENC_ALLOWED ||
 	policy != MPPE_ENC_POL_ENC_REQUIRED)
 	return;
@@ -998,6 +1024,7 @@ static struct chap_digest_type chapms2_digest = {
 void
 chapms_init(void)
 {
+	dlog("...");
 	chap_register_digest(&chapms_digest);
 	chap_register_digest(&chapms2_digest);
 	add_options(chapms_option_list);

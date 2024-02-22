@@ -1,5 +1,5 @@
 /*
- * passprompt.c - pppd plugin to invoke an external PAP password prompter
+ * passprompt.c - pppd plugin to invoke an external PAP password prompter(提示器)
  *
  * Copyright 1999 Paul Mackerras, Alan Curry.
  *

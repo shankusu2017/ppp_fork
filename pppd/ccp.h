@@ -32,7 +32,7 @@
 
 typedef struct ccp_options {
     bool bsd_compress;		/* do BSD Compress? */
-    bool deflate;		/* do Deflate? */
+    bool deflate;		/* do Deflate(缩小)? */
     bool predictor_1;		/* do Predictor-1? */
     bool predictor_2;		/* do Predictor-2? */
     bool deflate_correct;	/* use correct code for deflate? */

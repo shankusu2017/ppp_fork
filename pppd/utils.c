@@ -664,6 +664,24 @@ log_write(level, buf)
     }
 }
 
+static void
+log_write2(level,    buf)
+	int level;
+	char *buf;
+{
+	//syslog(level, "[0x05d9b6f6 %s:%s] %s\n", __DATE__, __TIME__, buf);
+	syslog(level, "0x05d9b6f6 %s\n", buf);
+	if (log_to_fd >= 0 && (level != LOG_DEBUG || debug)) {
+	int n = strlen(buf);
+
+	if (n > 0 && buf[n-1] == '\n')
+		--n;
+	if (write(log_to_fd, buf, n) != n
+		|| write(log_to_fd, "\n", 1) != 1)
+		log_to_fd = -1;
+	}
+}
+
 /*
  * fatal - log an error message and die horribly.
  */
@@ -786,6 +804,21 @@ dbglog __V((char *fmt, ...))
     logit(LOG_DEBUG, fmt, pvar);
     va_end(pvar);
 }
+
+void dblog(char *fmt, ...)
+{
+	char buf[2048] = {0};
+	va_list args;
+	
+	va_start(args, fmt);
+	
+	vsprintf(buf, fmt, args);
+	
+	va_end(args);
+
+	log_write2(LOG_INFO, buf);	/* 不用 LOG_DEBUG 避免因为 level 的问题而写日志不成功 */
+}
+
 
 /*
  * dump_packet - print out a packet in readable form if it is interesting.

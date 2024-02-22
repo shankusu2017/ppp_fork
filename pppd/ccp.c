@@ -356,7 +356,7 @@ ccp_init(unit)
     f->unit = unit;
     f->protocol = PPP_CCP;
     f->callbacks = &ccp_callbacks;
-    fsm_init(f);
+    fsm_init(f, PPP_CCP_NAME);
 
     memset(&ccp_wantoptions[unit],  0, sizeof(ccp_options));
     memset(&ccp_gotoptions[unit],   0, sizeof(ccp_options));
@@ -388,6 +388,7 @@ ccp_open(unit)
     int unit;
 {
     fsm *f = &ccp_fsm[unit];
+	dlog("%s", fsm_pout(f, 0));
 
     if (f->state != OPENED)
 	ccp_flags_set(unit, 1, 0);
@@ -982,6 +983,8 @@ ccp_nakci(f, p, len, treat_as_reject)
 
 /*
  * ccp_rejci - reject some of our suggested compression methods.
+ *
+ * 基本思路：将 peer 已经打勾(opt==1)的 选项去掉(opt=0)
  */
 static int
 ccp_rejci(f, p, len)

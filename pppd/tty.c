@@ -753,8 +753,10 @@ int connect_tty()
 	 * time for something from the peer.  This can avoid bouncing
 	 * our packets off his tty before he has it set up.
 	 */
-	if (connector != NULL || ptycommand != NULL || pty_socket != NULL)
+	if (connector != NULL || ptycommand != NULL || pty_socket != NULL) {
 		listen_time = connect_delay;
+		dlog("listen_time: %d", listen_time);
+	}
 
 	return ttyfd;
 

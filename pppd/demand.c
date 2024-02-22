@@ -78,6 +78,7 @@ static int active_packet __P((unsigned char *, int));
 void
 demand_conf()
 {
+	dlog("...");
     int i;
     struct protent *protp;
 
@@ -135,6 +136,7 @@ demand_block()
 void
 demand_discard()
 {
+	dlog("");
     struct packet *pkt, *nextpkt;
     int i;
     struct protent *protp;
@@ -291,12 +293,15 @@ loop_frame(frame, len)
 	    pend_qtail->next = pkt;
 	pend_qtail = pkt;
     }
+	dlog("");
     return 1;
 }
 
 /*
  * demand_rexmit - Resend all those frames which we got via the
  * loopback, now that the real serial link is up.
+ *
+ * 重发滞留的 packet
  */
 void
 demand_rexmit(proto)

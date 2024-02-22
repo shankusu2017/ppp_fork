@@ -72,7 +72,10 @@ static void lcp_delayed_up __P((void *));
  * LCP-related command-line options.
  */
 int	lcp_echo_interval = 0; 	/* Interval between LCP echo-requests */
-int	lcp_echo_fails = 0;	/* Tolerance to unanswered echo-requests */
+/* Tolerance(容忍度) to unanswered echo-requests 
+ * 最多能容忍 peer 未回答的次数（加一个 max 岂不是更好理解？ *）
+ */
+int	lcp_echo_fails = 0;	
 bool	lax_recv = 0;		/* accept control chars in asyncmap */
 bool	noendpoint = 0;		/* don't send/accept endpoint discriminator */
 
@@ -233,7 +236,8 @@ static fsm_callbacks lcp_callbacks = {	/* LCP callback routines */
     lcp_cilen,			/* Length of our Configuration Information */
     lcp_addci,			/* Add our Configuration Information */
     lcp_ackci,			/* ACK our Configuration Information */
-    lcp_nakci,			/* NAK our Configuration Information */
+    /* 否定 peer 发过来某项参值，给出己方任何更合适 值 */
+    lcp_nakci,			/* NAK(Negative Acknowledgment) our Configuration Information */
     lcp_rejci,			/* Reject our Configuration Information */
     lcp_reqci,			/* Request peer's Configuration Information */
     lcp_up,			/* Called when fsm reaches OPENED state */
@@ -336,6 +340,7 @@ static void
 lcp_init(unit)
     int unit;
 {
+	dlog("...");
     fsm *f = &lcp_fsm[unit];
     lcp_options *wo = &lcp_wantoptions[unit];
     lcp_options *ao = &lcp_allowoptions[unit];
@@ -344,7 +349,7 @@ lcp_init(unit)
     f->protocol = PPP_LCP;
     f->callbacks = &lcp_callbacks;
 
-    fsm_init(f);
+    fsm_init(f, PPP_LCP_NAME);
 
     BZERO(wo, sizeof(*wo));
     wo->neg_mru = 1;
@@ -384,6 +389,7 @@ lcp_open(unit)
 	f->flags |= OPT_PASSIVE;
     if (wo->silent)
 	f->flags |= OPT_SILENT;
+	dlog("... %s", fsm_pout(f, 0));
     fsm_open(f);
 }
 
@@ -396,6 +402,7 @@ lcp_close(unit, reason)
     int unit;
     char *reason;
 {
+	dlog("...");
     fsm *f = &lcp_fsm[unit];
     int oldstate;
 
@@ -430,6 +437,7 @@ void
 lcp_lowerup(unit)
     int unit;
 {
+	dlog("...");
     lcp_options *wo = &lcp_wantoptions[unit];
     fsm *f = &lcp_fsm[unit];
 
@@ -447,8 +455,10 @@ lcp_lowerup(unit)
     if (listen_time != 0) {
 	f->flags |= DELAYED_UP;
 	timeout(lcp_delayed_up, f, 0, listen_time * 1000);
-    } else
+    } else {
+	dlog("call fsm_lowerup");
 	fsm_lowerup(f);
+    }
 }
 
 
@@ -459,6 +469,7 @@ void
 lcp_lowerdown(unit)
     int unit;
 {
+	dlog("...");
     fsm *f = &lcp_fsm[unit];
 
     if (f->flags & DELAYED_UP) {
@@ -476,6 +487,7 @@ static void
 lcp_delayed_up(arg)
     void *arg;
 {
+	dlog("...");
     fsm *f = arg;
 
     if (f->flags & DELAYED_UP) {
@@ -494,6 +506,7 @@ lcp_input(unit, p, len)
     u_char *p;
     int len;
 {
+	dlog("...");
     fsm *f = &lcp_fsm[unit];
 
     if (f->flags & DELAYED_UP) {
@@ -514,6 +527,7 @@ lcp_extcode(f, code, id, inp, len)
     u_char *inp;
     int len;
 {
+	dlog("...");
     u_char *magp;
 
     switch( code ){
@@ -556,6 +570,7 @@ lcp_rprotrej(f, inp, len)
     u_char *inp;
     int len;
 {
+	dlog("...");
     int i;
     struct protent *protp;
     u_short prot;
@@ -609,6 +624,7 @@ static void
 lcp_protrej(unit)
     int unit;
 {
+	dlog("...");
     /*
      * Can't reject LCP!
      */
@@ -626,6 +642,7 @@ lcp_sprotrej(unit, p, len)
     u_char *p;
     int len;
 {
+	dlog("...");
     /*
      * Send back the protocol and the information field of the
      * rejected packet.  We only get here if LCP is in the OPENED state.
@@ -645,6 +662,7 @@ static void
 lcp_resetci(f)
     fsm *f;
 {
+	dlog("");
     lcp_options *wo = &lcp_wantoptions[f->unit];
     lcp_options *go = &lcp_gotoptions[f->unit];
     lcp_options *ao = &lcp_allowoptions[f->unit];
@@ -671,6 +689,7 @@ static int
 lcp_cilen(f)
     fsm *f;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[f->unit];
 
 #define LENCIVOID(neg)	((neg) ? CILEN_VOID : 0)
@@ -701,7 +720,7 @@ lcp_cilen(f)
 
 
 /*
- * lcp_addci - Add our desired CIs to a packet.
+ * lcp_addci - Add our desired(想要的) CIs to a packet.
  */
 static void
 lcp_addci(f, ucp, lenp)
@@ -709,6 +728,7 @@ lcp_addci(f, ucp, lenp)
     u_char *ucp;
     int *lenp;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[f->unit];
     u_char *start_ucp = ucp;
 
@@ -797,6 +817,7 @@ lcp_ackci(f, p, len)
     u_char *p;
     int len;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[f->unit];
     u_char cilen, citype, cichar;
     u_short cishort;
@@ -953,6 +974,7 @@ lcp_nakci(f, p, len, treat_as_reject)
     int len;
     int treat_as_reject;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[f->unit];
     lcp_options *wo = &lcp_wantoptions[f->unit];
     u_char citype, cichar, *next;
@@ -1346,6 +1368,7 @@ lcp_rejci(f, p, len)
     u_char *p;
     int len;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[f->unit];
     u_char cichar;
     u_short cishort;
@@ -1506,6 +1529,7 @@ lcp_reqci(f, inp, lenp, reject_if_disagree)
     int *lenp;			/* Length of requested CIs */
     int reject_if_disagree;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[f->unit];
     lcp_options *ho = &lcp_hisoptions[f->unit];
     lcp_options *ao = &lcp_allowoptions[f->unit];
@@ -1894,6 +1918,7 @@ static void
 lcp_up(f)
     fsm *f;
 {
+	dlog("...");
     lcp_options *wo = &lcp_wantoptions[f->unit];
     lcp_options *ho = &lcp_hisoptions[f->unit];
     lcp_options *go = &lcp_gotoptions[f->unit];
@@ -1945,6 +1970,7 @@ static void
 lcp_down(f)
     fsm *f;
 {
+	dlog("...");
     lcp_options *go = &lcp_gotoptions[f->unit];
 
     lcp_echo_lowerdown(f->unit);
@@ -1966,6 +1992,7 @@ static void
 lcp_starting(f)
     fsm *f;
 {
+	dlog("...");
     link_required(f->unit);
 }
 
@@ -1977,6 +2004,7 @@ static void
 lcp_finished(f)
     fsm *f;
 {
+	dlog("...");
     link_terminated(f->unit);
 }
 
@@ -1998,6 +2026,7 @@ lcp_printpkt(p, plen, printer, arg)
     void (*printer) __P((void *, char *, ...));
     void *arg;
 {
+	dlog("...");
     int code, id, len, olen, i;
     u_char *pstart, *optend;
     u_short cishort;
@@ -2238,6 +2267,7 @@ static
 void LcpLinkFailure (f)
     fsm *f;
 {
+	dlog("...");
     if (f->state == OPENED) {
 	info("No response to %d echo-requests", lcp_echos_pending);
         notice("Serial link appears to be disconnected.");
@@ -2254,6 +2284,7 @@ static void
 LcpEchoCheck (f)
     fsm *f;
 {
+	dlog("...");
     LcpSendEchoRequest (f);
     if (f->state != OPENED)
 	return;
@@ -2275,6 +2306,7 @@ static void
 LcpEchoTimeout (arg)
     void *arg;
 {
+	dlog("...");
     if (lcp_echo_timer_running != 0) {
         lcp_echo_timer_running = 0;
         LcpEchoCheck ((fsm *) arg);
@@ -2292,6 +2324,7 @@ lcp_received_echo_reply (f, id, inp, len)
     u_char *inp;
     int len;
 {
+	dlog("...");
     u_int32_t magic;
 
     /* Check the magic number - don't count replies from ourselves. */
@@ -2318,6 +2351,7 @@ static void
 LcpSendEchoRequest (f)
     fsm *f;
 {
+	dlog("...");
     u_int32_t lcp_magic;
     u_char pkt[4], *pktp;
 
@@ -2351,6 +2385,7 @@ static void
 lcp_echo_lowerup (unit)
     int unit;
 {
+	dlog("...");
     fsm *f = &lcp_fsm[unit];
 
     /* Clear the parameters for generating echo frames */
@@ -2371,6 +2406,7 @@ static void
 lcp_echo_lowerdown (unit)
     int unit;
 {
+	dlog("...");
     fsm *f = &lcp_fsm[unit];
 
     if (lcp_echo_timer_running != 0) {

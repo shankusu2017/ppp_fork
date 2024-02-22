@@ -347,6 +347,7 @@ option_t general_options[] = {
 #endif
 
 static char *usage_string = "\
+modify for learn\n\
 pppd version %s\n\
 Usage: %s [ options ], where options are:\n\
 	<device>	Communicate over the named device\n\
@@ -399,6 +400,47 @@ parse_args(argc, argv)
 	argv += n;
     }
     return 1;
+}
+
+
+void
+d_options(void)
+{
+	dlog("###########################");
+	{
+		option_t *opt;
+		struct option_list *list;
+		int i;
+		for (opt = general_options; opt->name != NULL; ++opt) {
+			if (opt->source != NULL) {
+				dlog("name:%s, source: %s", opt->name, opt->source);
+			}
+		}
+		for (opt = auth_options; opt->name != NULL; ++opt) {
+			if (opt->source != NULL) {
+				dlog("name:%s, source: %s", opt->name, opt->source);
+			}
+		}
+		for (list = extra_options; list != NULL; list = list->next) {
+			for (opt = list->options; opt->name != NULL; opt++) {
+				if (opt->source != NULL) {
+					dlog("name:%s, source: %s", opt->name, opt->source);
+				}
+			}
+		}
+		for (opt = the_channel->options; opt->name != NULL; ++opt)
+			if (opt->source != NULL) {
+				dlog("name:%s, source: %s", opt->name, opt->source);
+			}
+		for (i = 0; protocols[i] != NULL; ++i) {
+			for ((opt = protocols[i]->options); opt->name != NULL; opt++) {				
+				if (opt->source != NULL) {
+					dlog("name:%s, source: %s", opt->name, opt->source);
+				}
+			}
+		}
+	}
+	dlog("###########################");
 }
 
 /*
@@ -597,10 +639,15 @@ match_option(name, opt, dowild)
 {
 	int (*match) __P((char *, char **, int));
 
+	/* 类型不匹配, eg: 期待一个简单的参数 pppol2tp_tunnel_id 630 ，结果来了一个复合类的参数 192.168.1.1:192.168.1.203 */
 	if (dowild != (opt->type == o_wild))
 		return 0;
+
+	/* 简单参数， 直接对比参数名(pppol2tp_tunnel_id)是否匹配即可 */
 	if (!dowild)
 		return strcmp(name, opt->name) == 0;
+
+	/* 复杂参数，看handler(setipaddr)是否能处理该参数(192.168.1.1:192.168.1.203) */
 	match = (int (*) __P((char *, char **, int))) opt->addr;
 	return (*match)(name, NULL, 0);
 }

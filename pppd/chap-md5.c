@@ -45,12 +45,14 @@
 static void
 chap_md5_generate_challenge(unsigned char *cp)
 {
+	dlog("...");	
 	int clen;
 
 	clen = (int)(drand48() * (MD5_MAX_CHALLENGE - MD5_MIN_CHALLENGE))
 		+ MD5_MIN_CHALLENGE;
 	*cp++ = clen;
 	random_bytes(cp, clen);
+	dlog("clen: %d", clen);
 }
 
 static int
@@ -59,6 +61,7 @@ chap_md5_verify_response(int id, char *name,
 			 unsigned char *challenge, unsigned char *response,
 			 char *message, int message_space)
 {
+	dlog("...");
 	MD5_CTX ctx;
 	unsigned char idbyte = id;
 	unsigned char hash[MD5_HASH_SIZE];
@@ -89,6 +92,7 @@ chap_md5_make_response(unsigned char *response, int id, char *our_name,
 		       unsigned char *challenge, char *secret, int secret_len,
 		       unsigned char *private)
 {
+	dlog("...");
 	MD5_CTX ctx;
 	unsigned char idbyte = id;
 	int challenge_len = *challenge++;
@@ -113,5 +117,6 @@ static struct chap_digest_type md5_digest = {
 void
 chap_md5_init(void)
 {
+	dlog("...");
 	chap_register_digest(&md5_digest);
 }

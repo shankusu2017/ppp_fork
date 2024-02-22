@@ -65,8 +65,12 @@
  */
 typedef struct fsm {
     int unit;			/* Interface unit number */
+	
+	/* lcp、'atuh'、ip、ipv6 */
     int protocol;		/* Data Link Layer Protocol field value */
+	
     int state;			/* State */
+	
     int flags;			/* Contains option bits */
     u_char id;			/* Current id */
     u_char reqid;		/* Current request id */
@@ -77,10 +81,14 @@ typedef struct fsm {
     int maxtermtransmits;	/* Maximum Terminate-Request transmissions */
     int nakloops;		/* Number of nak loops since last ack */
     int rnakloops;		/* Number of naks received */
-    int maxnakloops;		/* Maximum number of nak loops tolerated */
+    int maxnakloops;		/* Maximum number of nak loops tolerated(容忍) */
+	
     struct fsm_callbacks *callbacks;	/* Callback routines */
+
     char *term_reason;		/* Reason for closing protocol */
     int term_reason_len;	/* Length of term_reason */
+
+	char name[100];			/* TODO DEL protocol name */
 } fsm;
 
 
@@ -93,7 +101,7 @@ typedef struct fsm_callbacks {
 		__P((fsm *, u_char *, int *));
     int  (*ackci)		/* ACK our Configuration Information */
 		__P((fsm *, u_char *, int));
-    int  (*nakci)		/* NAK our Configuration Information */
+    int  (*nakci)		/* NAK our Configuration Information(你发过来的某些参数的值不对，用我发给我你的吧) */
 		__P((fsm *, u_char *, int, int));
     int  (*rejci)		/* Reject our Configuration Information */
 		__P((fsm *, u_char *, int));
@@ -118,26 +126,28 @@ typedef struct fsm_callbacks {
 
 
 /*
- * Link states.
+ * Link states. 状态机的 fsm, 不是整个 ppd 进程的链接状态
  */
 #define INITIAL		0	/* Down, hasn't been opened */
 #define STARTING	1	/* Down, been opened */
-#define CLOSED		2	/* Up, hasn't been opened */
-#define STOPPED		3	/* Open, waiting for down event */
-#define CLOSING		4	/* Terminating the connection, not open */
-#define STOPPING	5	/* Terminating, but open */
+#define CLOSED		2	/* Up, hasn't been opened，已关闭 */
+#define STOPPED		3	/* Open, waiting for down event，已停止 */
+#define CLOSING		4	/* Terminating the connection, not open，关闭中 */
+
+#define STOPPING	5	/* Terminating, but open，停止中 */
 #define REQSENT		6	/* We've sent a Config Request */
 #define ACKRCVD		7	/* We've received a Config Ack */
 #define ACKSENT		8	/* We've sent a Config Ack */
+
 #define OPENED		9	/* Connection available */
 
 
 /*
  * Flags - indicate options controlling FSM operation
  */
-#define OPT_PASSIVE	1	/* Don't die if we don't get a response */
+#define OPT_PASSIVE	1	/* 被动，Don't die if we don't get a response */
 #define OPT_RESTART	2	/* Treat 2nd OPEN as DOWN, UP */
-#define OPT_SILENT	4	/* Wait for peer to speak first */
+#define OPT_SILENT	4	/* 沉默，Wait for peer to speak first */
 
 
 /*
@@ -152,7 +162,7 @@ typedef struct fsm_callbacks {
 /*
  * Prototypes
  */
-void fsm_init __P((fsm *));
+void fsm_init __P((fsm *, const char *));
 void fsm_lowerup __P((fsm *));
 void fsm_lowerdown __P((fsm *));
 void fsm_open __P((fsm *));
@@ -166,3 +176,5 @@ void fsm_sdata __P((fsm *, int, int, u_char *, int));
  * Variables
  */
 extern int peer_mru[];		/* currently negotiated peer MRU (per unit) */
+
+char *fsm_pout(fsm *f, int code);

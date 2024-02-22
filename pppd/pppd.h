@@ -87,6 +87,7 @@
 
 typedef unsigned char	bool;
 
+/* 选项类型 */
 enum opt_type {
 	o_special_noarg = 0,
 	o_special = 1,
@@ -94,19 +95,19 @@ enum opt_type {
 	o_int,
 	o_uint32,
 	o_string,
-	o_wild
+	o_wild	/* 类似 192.168.1.1:192.168.1.100 */
 };
 
 typedef struct {
 	char	*name;		/* name of the option */
 	enum opt_type type;
-	void	*addr;
+	void	*addr;			/* 简单变量：变量的地址。复杂变量：处理的函数 */
 	char	*description;
 	unsigned int flags;
-	void	*addr2;
+	void	*addr2;			/* 复杂变量的地址 */
 	int	upper_limit;
 	int	lower_limit;
-	const char *source;
+	const char *source;		/* 现在的值均为 NULL */
 	short int priority;
 	short int winner;
 } option_t;
@@ -380,11 +381,11 @@ extern int  option_priority;	/* priority of current options */
 #define PHASE_INITIALIZE	1
 #define PHASE_SERIALCONN	2
 #define PHASE_DORMANT		3
-#define PHASE_ESTABLISH		4
-#define PHASE_AUTHENTICATE	5
+#define PHASE_ESTABLISH		4		/* */
+#define PHASE_AUTHENTICATE	5		/* */
 #define PHASE_CALLBACK		6
-#define PHASE_NETWORK		7
-#define PHASE_RUNNING		8
+#define PHASE_NETWORK		7		/* */
+#define PHASE_RUNNING		8		/* */
 #define PHASE_TERMINATE		9
 #define PHASE_DISCONNECT	10
 #define PHASE_HOLDOFF		11
@@ -402,6 +403,7 @@ struct protent {
     void (*input) __P((int unit, u_char *pkt, int len));
     /* Process a received protocol-reject */
     void (*protrej) __P((int unit));
+	
     /* Lower layer has come up */
     void (*lowerup) __P((int unit));
     /* Lower layer has gone down */
@@ -410,6 +412,7 @@ struct protent {
     void (*open) __P((int unit));
     /* Close the protocol */
     void (*close) __P((int unit, char *reason));
+	
     /* Print a packet in readable form */
     int  (*printpkt) __P((u_char *pkt, int len, printer_func printer,
 			  void *arg));
@@ -417,6 +420,7 @@ struct protent {
     void (*datainput) __P((int unit, u_char *pkt, int len));
     bool enabled_flag;		/* 0 iff protocol is disabled */
     char *name;			/* Text name of protocol */
+	
     char *data_name;		/* Text name of corresponding data protocol */
     option_t *options;		/* List of command-line options */
     /* Check requested options, assign defaults */
@@ -507,6 +511,7 @@ void update_link_stats __P((int)); /* Get stats at link termination */
 void script_setenv __P((char *, char *, int));	/* set script env var */
 void script_unsetenv __P((char *));		/* unset script env var */
 void new_phase __P((int));	/* signal start of new phase */
+void print_status (void);	 /* printf new status */
 void add_notifier __P((struct notifier **, notify_func, void *));
 void remove_notifier __P((struct notifier **, notify_func, void *));
 void notify __P((struct notifier *, int));
@@ -538,6 +543,7 @@ void fatal __P((char *, ...));	/* log an error message and die(1) */
 void init_pr_log __P((const char *, int)); /* initialize for using pr_log */
 void pr_log __P((void *, char *, ...));	/* printer fn, output to syslog */
 void end_pr_log __P((void));	/* finish up after using pr_log */
+void dblog(char *, ...);	/* log for debug */
 void dump_packet __P((const char *, u_char *, int));
 				/* dump packet to debug log if interesting */
 ssize_t complete_read __P((int, void *, size_t));
@@ -696,6 +702,7 @@ char *get_first_ethernet __P((void));
 int setipaddr __P((char *, char **, int)); /* Set local/remote ip addresses */
 int  parse_args __P((int argc, char **argv));
 				/* Parse options from arguments given */
+void d_options(void);
 int  options_from_file __P((char *filename, int must_exist, int check_prot,
 			    int privileged));
 				/* Parse options from an options file */
@@ -929,5 +936,9 @@ extern void (*snoop_send_hook) __P((unsigned char *p, int len));
 #ifndef offsetof
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
 #endif
+
+
+#define dlog(format, ...) dblog("%-7s %-10s %-3d "format, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
 
 #endif /* __PPP_H__ */

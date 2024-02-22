@@ -151,7 +151,7 @@ ecp_init(unit)
     f->unit = unit;
     f->protocol = PPP_ECP;
     f->callbacks = &ecp_callbacks;
-    fsm_init(f);
+    fsm_init(f, PPP_ECP_NAME);
 
     memset(&ecp_wantoptions[unit],  0, sizeof(ecp_options));
     memset(&ecp_gotoptions[unit],   0, sizeof(ecp_options));

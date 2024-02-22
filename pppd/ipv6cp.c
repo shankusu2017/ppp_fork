@@ -429,7 +429,7 @@ ipv6cp_init(unit)
     f->unit = unit;
     f->protocol = PPP_IPV6CP;
     f->callbacks = &ipv6cp_callbacks;
-    fsm_init(&ipv6cp_fsm[unit]);
+    fsm_init(&ipv6cp_fsm[unit], PPP_IPV6CP_NAME);
 
     memset(wo, 0, sizeof(*wo));
     memset(ao, 0, sizeof(*ao));
@@ -455,6 +455,7 @@ ipv6cp_open(unit)
     int unit;
 {
     fsm_open(&ipv6cp_fsm[unit]);
+	dlog("%s", fsm_pout(&ipv6cp_fsm[unit], 0));
 }
 
 

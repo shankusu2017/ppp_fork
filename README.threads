@@ -1,0 +1,38 @@
+This is the README file for threads process
+
+*************
+
+### 配置逻辑待改点
+
+- 配置参数处理逻辑，直接用了进程级别变量，需改成 threads
+
+### 配置逻辑不动点
+- 还是采用开一个ppp线程，读取一遍配置文件的逻辑（启动进程时读取配置，创建ppp时再复制的思路，改动量太大）
+
+### 进程变量由进程改为线程的思路
+- 引用进程变量的地方加一个 ppp_cur-> 前缀，在处理 pppd 的数据前，将 ppp_cur 指到当前的ppp结构体上
+- pppd全局变量的初始化需要改为主动的init（需要将其中引用的全局变量改到指定的thread上）
+- v2 ppp 整体架构改为并发，需要在函数调用参数中加入一个 ppp_t *的参数,用于传递原来进程级的变量
+
+### io 相关的改造
+- ppp 的 output 逻辑，改为写到 l2tp 中的 call 的 特定 buf 中，
+处理完 ppp 的逻辑后， l2tp 再检查特定 buf 是否有输出，有则将其 forward 即可（所有的pppd 的 outbuf 可以共用），
+一个 ppp 的单次处理流程可能有多个 outbuf,所以考虑链表结构
+- v2 上述 output 的设计优化为 通过 pipe 将要 output 的 内存地址传给 l2tp 逻辑（不传整个数据，避免大数据的内核拷贝）,
+不超过 PIPE_BUF 的同时，内核也保证了 write 的原子性。
+- v2 采用 pipe 而不采用 socket 一来逻辑简单，二来不会才生一堆 fd 的问题（避免 fd 数量限制）
+
+
+### radius 的改造
+- 与 radius 服务器阻塞式的 socket 通信( rc_send_server 等 io 函数)要怎么改？一个思路是 send后，立刻返回，将 fd 放到下一个 loop 中检测有返回数据再处理后续的逻辑
+难点在于，打断了本次 call 的逻辑（包含超级多的调用帧的数据要处理），改造难度太大
+- v2 采用 threads_pool 的方式，所有用到的 file_var 改成 stack_var 即可
+
+### 信号的改造
+- ppp 的信号处理逻辑，直接放到 l2tp 中处理
+
+
+### sd-wan 私有代码
+- 有和 xl2tpd 进行 RPC 通信的代码
+- 有对 radius 修改的代码
+- 有对 io 做 timeout 处理的代码

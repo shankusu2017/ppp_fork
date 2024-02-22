@@ -104,6 +104,7 @@ unsigned char rc_get_seqnbr(void)
 		return rc_guess_seqnbr();
 	}
 
+	/* 多个进程共享 seq ,这里做进程间互斥操作 */
 	while (do_lock_exclusive(fileno(sf))!= 0)
 	{
 		if (errno != EWOULDBLOCK) {

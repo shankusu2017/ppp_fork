@@ -209,6 +209,7 @@ int unit;
 	esp->es_server.ea_id = (u_char)(drand48() * 0x100);
 	esp->es_client.ea_timeout = EAP_DEFREQTIME;
 	esp->es_client.ea_maxrequests = EAP_DEFALLOWREQ;
+	dlog("");
 }
 
 /*

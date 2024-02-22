@@ -77,8 +77,9 @@ int peer_mru[NUM_PPP];
  * Initialize fsm state.
  */
 void
-fsm_init(f)
+fsm_init(f, name)
     fsm *f;
+	const char *name;
 {
     f->state = INITIAL;
     f->flags = 0;
@@ -88,26 +89,35 @@ fsm_init(f)
     f->maxtermtransmits = DEFMAXTERMREQS;
     f->maxnakloops = DEFMAXNAKLOOPS;
     f->term_reason_len = 0;
+
+	strncpy(f->name, name, sizeof(f->name));
+	
+	dlog("... %s", fsm_pout(f, 0));
 }
 
 
 /*
  * fsm_lowerup - The lower layer is up.
+ * 一般情况：发送 confreq
  */
 void
 fsm_lowerup(f)
     fsm *f;
 {
+	dlog("... %s", fsm_pout(f, 0));
+
     switch( f->state ){
     case INITIAL:
 	f->state = CLOSED;
 	break;
 
     case STARTING:
-	if( f->flags & OPT_SILENT )
+	if( f->flags & OPT_SILENT ) {	/* 不理解这个条件 */
 	    f->state = STOPPED;
-	else {
-	    /* Send an initial configure-request */
+	} else {
+	    /* Send an initial configure-request
+	     */
+		dlog("call fsm_sconfreq");
 	    fsm_sconfreq(f, 0);
 	    f->state = REQSENT;
 	}
@@ -128,6 +138,7 @@ void
 fsm_lowerdown(f)
     fsm *f;
 {
+	dlog("... %s", fsm_pout(f, 0));
     switch( f->state ){
     case CLOSED:
 	f->state = INITIAL;
@@ -171,6 +182,7 @@ void
 fsm_open(f)
     fsm *f;
 {
+	dlog("... %s", fsm_pout(f, 0));
     switch( f->state ){
     case INITIAL:
 	f->state = STARTING;
@@ -212,7 +224,8 @@ terminate_layer(f, nextstate)
     fsm *f;
     int nextstate;
 {
-    if( f->state != OPENED )
+	dlog("... %s", fsm_pout(f, 0));
+	if( f->state != OPENED )
 	UNTIMEOUT(fsm_timeout, f);	/* Cancel timeout */
     else if( f->callbacks->down )
 	(*f->callbacks->down)(f);	/* Inform upper layers we're down */
@@ -251,6 +264,7 @@ fsm_close(f, reason)
     fsm *f;
     char *reason;
 {
+	dlog("... %s", fsm_pout(f, 0));
     f->term_reason = reason;
     f->term_reason_len = (reason == NULL? 0: strlen(reason));
     switch( f->state ){
@@ -281,7 +295,8 @@ static void
 fsm_timeout(arg)
     void *arg;
 {
-    fsm *f = (fsm *) arg;
+    fsm *f = (fsm *) arg;	
+	dlog("... %s", fsm_pout(f, 0));
 
     switch (f->state) {
     case CLOSING:
@@ -336,6 +351,7 @@ fsm_input(f, inpacket, l)
     u_char *inpacket;
     int l;
 {
+	dlog("... %s", fsm_pout(f, 0));
     u_char *inp;
     u_char code, id;
     int len;
@@ -361,6 +377,9 @@ fsm_input(f, inpacket, l)
 	return;
     }
     len -= HEADERLEN;		/* subtract header length */
+
+	
+	dlog("%s", fsm_pout(f, code));
 
     if( f->state == INITIAL || f->state == STARTING ){
 	FSMDEBUG(("fsm_input(%x): Rcvd packet in state %d.",
@@ -403,6 +422,9 @@ fsm_input(f, inpacket, l)
 	    fsm_sdata(f, CODEREJ, ++f->id, inpacket, len + HEADERLEN);
 	break;
     }
+
+
+	dlog("%s", fsm_pout(f, code));
 }
 
 
@@ -416,6 +438,8 @@ fsm_rconfreq(f, id, inp, len)
     u_char *inp;
     int len;
 {
+	
+	dlog("... %s", fsm_pout(f, 0));
     int code, reject_if_disagree;
 
     switch( f->state ){
@@ -461,8 +485,10 @@ fsm_rconfreq(f, id, inp, len)
 	if (f->state == ACKRCVD) {
 	    UNTIMEOUT(fsm_timeout, f);	/* Cancel timeout */
 	    f->state = OPENED;
-	    if (f->callbacks->up)
+	    if (f->callbacks->up) {
+		dlog("%s", fsm_pout(f, 0));
 		(*f->callbacks->up)(f);	/* Inform upper layers */
+	    }
 	} else
 	    f->state = ACKSENT;
 	f->nakloops = 0;
@@ -487,6 +513,8 @@ fsm_rconfack(f, id, inp, len)
     u_char *inp;
     int len;
 {
+	dlog("... %s", fsm_pout(f, 0));
+	
     if (id != f->reqid || f->seen_ack)		/* Expected id? */
 	return;					/* Nope, toss... */
     if( !(f->callbacks->ackci? (*f->callbacks->ackci)(f, inp, len):
@@ -520,8 +548,10 @@ fsm_rconfack(f, id, inp, len)
 	UNTIMEOUT(fsm_timeout, f);	/* Cancel timeout */
 	f->state = OPENED;
 	f->retransmits = f->maxconfreqtransmits;
-	if (f->callbacks->up)
+	if (f->callbacks->up) {
+		dlog("%s", fsm_pout(f, 0));
 	    (*f->callbacks->up)(f);	/* Inform upper layers */
+	}
 	break;
 
     case OPENED:
@@ -545,6 +575,8 @@ fsm_rconfnakrej(f, code, id, inp, len)
     u_char *inp;
     int len;
 {
+	
+	dlog("... %s", fsm_pout(f, 0));
     int ret;
     int treat_as_reject;
 
@@ -614,7 +646,9 @@ fsm_rtermreq(f, id, p, len)
     u_char *p;
     int len;
 {
-    switch (f->state) {
+	
+	dlog("... %s", fsm_pout(f, 0));
+	switch (f->state) {
     case ACKRCVD:
     case ACKSENT:
 	f->state = REQSENT;		/* Start over but keep trying */
@@ -644,7 +678,9 @@ static void
 fsm_rtermack(f)
     fsm *f;
 {
-    switch (f->state) {
+	
+	dlog("... %s", fsm_pout(f, 0));
+	switch (f->state) {
     case CLOSING:
 	UNTIMEOUT(fsm_timeout, f);
 	f->state = CLOSED;
@@ -681,7 +717,9 @@ fsm_rcoderej(f, inp, len)
     u_char *inp;
     int len;
 {
-    u_char code, id;
+	
+	dlog("... %s", fsm_pout(f, 0));
+	u_char code, id;
 
     if (len < HEADERLEN) {
 	FSMDEBUG(("fsm_rcoderej: Rcvd short Code-Reject packet!"));
@@ -699,13 +737,15 @@ fsm_rcoderej(f, inp, len)
 /*
  * fsm_protreject - Peer doesn't speak this protocol.
  *
- * Treat this as a catastrophic error (RXJ-).
+ * Treat this as a catastrophic(灾难性) error (RXJ-).
  */
 void
 fsm_protreject(f)
     fsm *f;
 {
-    switch( f->state ){
+	
+	dlog("... %s", fsm_pout(f, 0));
+	switch( f->state ){
     case CLOSING:
 	UNTIMEOUT(fsm_timeout, f);	/* Cancel timeout */
 	/* fall through */
@@ -746,6 +786,7 @@ fsm_sconfreq(f, retransmit)
     fsm *f;
     int retransmit;
 {
+	dlog("... %s", fsm_pout(f, 0));
     u_char *outp;
     int cilen;
 
@@ -799,7 +840,9 @@ fsm_sdata(f, code, id, data, datalen)
     u_char *data;
     int datalen;
 {
-    u_char *outp;
+	
+	dlog("... %s", fsm_pout(f, code));
+	u_char *outp;
     int outlen;
 
     /* Adjust length to be smaller than MTU */
@@ -815,3 +858,102 @@ fsm_sdata(f, code, id, data, datalen)
     PUTSHORT(outlen, outp);
     output(f->unit, outpacket_buf, outlen + PPP_HDRLEN);
 }
+
+char *
+fsm_pout(fsm *f, int code)
+{
+	static char buf[256];
+	static char state[128];
+	static char opcode[128];
+
+	switch (f->state) {
+		case INITIAL:
+			snprintf(state, sizeof(state), "state: %s", "INITIAL");
+			break;
+		case STARTING:
+			snprintf(state, sizeof(state), "state: %s", "STARTING");
+			break;
+		case CLOSED:
+			snprintf(state, sizeof(state), "state: %s", "CLOSED");
+			break;
+		case STOPPED:
+			snprintf(state, sizeof(state), "state: %s", "STOPPED");
+			break;
+		case CLOSING:
+			snprintf(state, sizeof(state), "state: %s", "CLOSING");
+			break;
+		case STOPPING:
+			snprintf(state, sizeof(state), "state: %s", "STOPPING");
+			break;
+		case REQSENT:
+			snprintf(state, sizeof(state), "state: %s", "REQSENT");
+			break;
+		case ACKRCVD:
+			snprintf(state, sizeof(state), "state: %s", "ACKRCVD");
+			break;
+		case ACKSENT:
+			snprintf(state, sizeof(state), "state: %s", "ACKSENT");
+			break;
+		case OPENED:
+			snprintf(state, sizeof(state), "state: %s", "OPENED");
+			break;
+		default:
+			snprintf(state, sizeof(state), "state: %d", f->state);
+			break;
+	}
+
+	switch (code) {
+		case CONFREQ:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "CONFREQ");
+			break;
+		case CONFACK:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "CONFACK");
+			break;
+		case CONFNAK:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "CONFNAK");
+			break;
+		case CONFREJ:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "CONFREJ");
+			break;
+		case TERMREQ:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "TERMREQ");
+			break;
+		case TERMACK:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "TERMACK");
+			break;
+		case CODEREJ:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "CODEREJ");
+			break;
+		//case PROTREJ:
+		case 8:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "PROTREJ");
+			break;
+		//case ECHOREQ:
+		case 9:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "ECHOREQ");
+			break;
+		//ECHOREP
+		case 10:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "ECHOREP");
+			break;
+		//case DISCREQ:
+		case 11:
+				snprintf(opcode, sizeof(opcode), "opcode: %s", "DISCREQ");
+				break;
+		//case IDENTIF:
+		case 12:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "IDENTIF");
+			break;
+		// TIMEREM
+		case 13:
+			snprintf(opcode, sizeof(opcode), "opcode: %s", "TIMEREM");
+			break;
+		default:
+			snprintf(opcode, sizeof(opcode), "opcode: %d", code);
+			break;
+	}
+
+	snprintf(buf, sizeof(buf), "name: %s, %s, %s", f->name, state, opcode);
+	return buf;
+}
+

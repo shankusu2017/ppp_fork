@@ -305,11 +305,33 @@ struct protent *protocols[] = {
 #define PPP_DRV_NAME	"ppp"
 #endif /* !defined(PPP_DRV_NAME) */
 
+/* /usr/sbin/pppd plugin pppol2tp.so pppol2tp 7 pppol2tp_lns_mode pppol2tp_tunnel_id 630 pppol2tp_session_id 5625 passive nodetach 192.168.1.10:192.168.1.128 auth name LinuxVPNserver debug file /etc/ppp/options.xl2tpd 
+ * plugin 插件参数
+*/
 int
 main(argc, argv)
     int argc;
     char *argv[];
 {
+	dlog("hello world\n");
+	{
+#ifdef MPPE
+	dlog("MPPE MACRO ing");
+#else
+	dlog("MPPE MACRO not ing");
+#endif
+#ifdef CHAPMS
+	dlog("CHAPMS MACRO ing");
+#endif
+#ifdef PPP_FILTER
+	dlog("PPP_FILTER MACRO ing");
+#endif
+#ifdef USE_SRP
+	dlog("USE_SRP  MACRO ing");
+#endif
+	}
+
+		
     int i, t;
     char *p;
     struct passwd *pw;
@@ -349,8 +371,10 @@ main(argc, argv)
     /*
      * Initialize each protocol.
      */
-    for (i = 0; (protp = protocols[i]) != NULL; ++i)
+    for (i = 0; (protp = protocols[i]) != NULL; ++i) {
         (*protp->init)(0);
+		dlog("call protocols(%s) init function", protp->name);
+    }
 
     /*
      * Initialize the default channel.
@@ -358,6 +382,9 @@ main(argc, argv)
     tty_init();
 
     progname = *argv;
+
+
+	d_options();
 
     /*
      * Parse, in order, the system options file, the user's options file,
@@ -401,6 +428,7 @@ main(argc, argv)
 	exit(EXIT_OPTION_ERROR);
     auth_check_options();
 #ifdef HAVE_MULTILINK
+	dlog("HAVE_MULTILINK MACRO ing\n");
     mp_check_options();
 #endif
     for (i = 0; (protp = protocols[i]) != NULL; ++i)
@@ -436,6 +464,8 @@ main(argc, argv)
     sys_init();
 
 #ifdef USE_TDB
+	/* 下面逻辑被执行 */
+	dlog("USE_TDB MACRO ing\n");
     pppdb = tdb_open(_PATH_PPPDB, 0, 0, O_RDWR|O_CREAT, 0644);
     if (pppdb != NULL) {
 	slprintf(db_key, sizeof(db_key), "pppd%d", getpid());
@@ -465,6 +495,7 @@ main(argc, argv)
     }
     syslog(LOG_NOTICE, "pppd %s started by %s, uid %d", VERSION, p, uid);
     script_setenv("PPPLOGNAME", p, 0);
+	dlog("login at %s", p);
 
     if (devnam[0])
 	script_setenv("DEVICE", devnam, 1);
@@ -481,6 +512,7 @@ main(argc, argv)
      * If we're doing dial-on-demand, set up the interface now.
      */
     if (demand) {
+		dlog("Open the loopback channel and set it up to be the ppp interface.");
 	/*
 	 * Open the loopback channel and set it up to be the ppp interface.
 	 */
@@ -535,8 +567,10 @@ main(argc, argv)
 	script_unsetenv("BYTES_SENT");
 	script_unsetenv("BYTES_RCVD");
 
+	dlog("Start protocol");
 	lcp_open(0);		/* Start protocol */
 	start_link(0);
+	dlog("start_link done");
 	while (phase != PHASE_DEAD) {
 	    handle_events();
 	    get_input();
@@ -556,9 +590,12 @@ main(argc, argv)
 	}
 	/* restore FSMs to original state */
 	lcp_close(0, "");
+	dlog("00000000 phase == PHASE_DEAD");
 
-	if (!persist || asked_to_quit || (maxfail > 0 && unsuccess >= maxfail))
+	if (!persist || asked_to_quit || (maxfail > 0 && unsuccess >= maxfail)) {
+		dlog("exit 111111");
 	    break;
+	}
 
 	if (demand)
 	    demand_discard();
@@ -573,8 +610,10 @@ main(argc, argv)
 		if (kill_link)
 		    new_phase(PHASE_DORMANT); /* allow signal to end holdoff */
 	    } while (phase == PHASE_HOLDOFF);
-	    if (!persist)
+	    if (!persist) {
+			dlog("222222");
 		break;
+	    }
 	}
     }
 
@@ -630,6 +669,7 @@ handle_events()
     }
     if (got_sigterm) {
 	info("Terminating on signal %d", got_sigterm);
+	dlog("Terminating on signal %d", got_sigterm);
 	kill_link = 1;
 	asked_to_quit = 1;
 	persist = 0;
@@ -1059,13 +1099,16 @@ get_input()
     GETSHORT(protocol, p);
     len -= PPP_HDRLEN;
 
+
     /*
      * Toss all non-LCP packets unless LCP is OPEN.
      */
     if (protocol != PPP_LCP && lcp_fsm[0].state != OPENED) {
 	dbglog("Discarded non-LCP packet when LCP not open");
+	dlog("protocol: %d, phase: %d", protocol, phase);
 	return;
     }
+
 
     /*
      * Until we get past the authentication phase, toss all packets
@@ -1154,12 +1197,139 @@ void
 new_phase(p)
     int p;
 {
+	char buf[128];
+	switch (p) {
+		case PHASE_DEAD:
+			sprintf(buf, "DEAD");
+			break;
+		case PHASE_INITIALIZE:
+			sprintf(buf, "INITIALIZE");
+			break;
+		case PHASE_SERIALCONN:
+			sprintf(buf, "SERIALCONN");
+			break;
+		case PHASE_DORMANT:
+			sprintf(buf, "DORMANT");
+			break;
+		case PHASE_ESTABLISH:
+			sprintf(buf, "ESTABLISH");
+			break;
+		case PHASE_AUTHENTICATE:
+			sprintf(buf, "AUTHENTICATE");
+			break;
+		case PHASE_CALLBACK:
+			sprintf(buf, "CALLBACK");
+			break;
+		case PHASE_NETWORK:
+			sprintf(buf, "NETWORK");
+			break;
+		case PHASE_RUNNING:
+			sprintf(buf, "RUNNING");
+			break;
+		case PHASE_TERMINATE:
+			sprintf(buf, "TERMINATE");
+			break;
+		case PHASE_DISCONNECT:
+			sprintf(buf, "DISCONNECT");
+			break;
+		case PHASE_HOLDOFF:
+			sprintf(buf, "HOLDOFF");
+			break;
+		case PHASE_MASTER:
+			sprintf(buf, "MASTEREAD");
+			break;
+		default:
+			sprintf(buf, "");
+			break;
+	}
+	dlog("[phase---->%s] ...", buf);	
+	
     phase = p;
     if (new_phase_hook)
 	(*new_phase_hook)(p);
     notify(phasechange, p);
+	dlog("[phase---->%s]... call done", buf);	
 }
 
+void print_status(void)
+{
+	int s = status;
+	char msg[128];
+	switch (s) {
+		case EXIT_OK:
+			sprintf(msg, "EXIT_OK");
+			break;
+		case EXIT_FATAL_ERROR:
+			sprintf(msg, "EXIT_FATAL_ERROR");
+			break;
+		case EXIT_OPTION_ERROR:
+			sprintf(msg, "EXIT_OPTION_ERROR");
+			break;
+		case EXIT_NOT_ROOT:
+			sprintf(msg, "EXIT_NOT_ROOT");
+			break;
+		case EXIT_NO_KERNEL_SUPPORT:
+			sprintf(msg, "EXIT_NO_KERNEL_SUPPORT");
+			break;
+		case EXIT_USER_REQUEST:
+			sprintf(msg, "EXIT_USER_REQUEST");
+			break;
+		case EXIT_LOCK_FAILED:
+			sprintf(msg, "EXIT_LOCK_FAILED");
+			break;
+		case EXIT_OPEN_FAILED:
+			sprintf(msg, "EXIT_OPEN_FAILED");
+			break;
+		case EXIT_CONNECT_FAILED:
+			sprintf(msg, "EXIT_CONNECT_FAILED");
+			break;
+		case EXIT_PTYCMD_FAILED:
+			sprintf(msg, "EXIT_PTYCMD_FAILED");
+			break;
+		case EXIT_NEGOTIATION_FAILED:
+			sprintf(msg, "EXIT_NEGOTIATION_FAILED");
+			break;
+		case EXIT_PEER_AUTH_FAILED:
+			sprintf(msg, "EXIT_PEER_AUTH_FAILED");
+			break;
+		case EXIT_IDLE_TIMEOUT:
+			sprintf(msg, "EXIT_IDLE_TIMEOUT");
+			break;
+		case EXIT_CONNECT_TIME:
+			sprintf(msg, "EXIT_CONNECT_TIME");
+			break;
+		case EXIT_CALLBACK:
+			sprintf(msg, "EXIT_CALLBACK");
+			break;
+		case EXIT_PEER_DEAD:
+			sprintf(msg, "EXIT_PEER_DEAD");
+			break;
+		case EXIT_HANGUP:
+			sprintf(msg, "EXIT_HANGUP");
+			break;
+		case EXIT_LOOPBACK:
+			sprintf(msg, "EXIT_LOOPBACK");
+			break;
+		case EXIT_INIT_FAILED:
+			sprintf(msg, "");
+			break;
+		case EXIT_AUTH_TOPEER_FAILED:
+			sprintf(msg, "EXIT_AUTH_TOPEER_FAILED");
+			break;
+		case EXIT_TRAFFIC_LIMIT:
+			sprintf(msg, "EXIT_TRAFFIC_LIMIT");
+			break;
+		case EXIT_CNID_AUTH_FAILED:
+			sprintf(msg, "EXIT_CNID_AUTH_FAILED");
+			break;
+		default:
+			sprintf(msg, "default");
+			break;
+	}
+
+	dlog("state: %s", msg);
+}
+	
 /*
  * die - clean up state and exit with the specified status.
  */
@@ -1451,6 +1621,7 @@ static void
 term(sig)
     int sig;
 {
+	dlog("");
     /* can't log a message here, it can deadlock */
     got_sigterm = sig;
     if (conn_running)

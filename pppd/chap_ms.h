@@ -68,6 +68,7 @@
 #define MS_CHAP2_FLAGS		48
 
 #ifdef MPPE
+/* MPPE 已打开 */
 #include "mppe.h"	/* MPPE_MAX_KEY_LEN */
 extern u_char mppe_send_key[MPPE_MAX_KEY_LEN];
 extern u_char mppe_recv_key[MPPE_MAX_KEY_LEN];
@@ -83,7 +84,7 @@ extern int mppe_keys_set;
 extern void set_mppe_enc_types(int, int);
 #endif
 
-/* Are we the authenticator or authenticatee?  For MS-CHAPv2 key derivation. */
+/* Are we the authenticator(认证者) or authenticatee(被认证者)?  For MS-CHAPv2 key derivation. */
 #define MS_CHAP2_AUTHENTICATEE 0
 #define MS_CHAP2_AUTHENTICATOR 1
 
